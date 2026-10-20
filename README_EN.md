@@ -30,14 +30,74 @@ pip install requests websocket-client && python main.py
 ---
 
 ## 🛠️ Getting Your Token and Cookies
-1. Open [Discord Web](https://discord.com/app) in Chrome or Brave and log in.
-   - On Android use [Kiwi Browser](https://github.com/kiwibrowser/src.next/releases) and enable **Desktop Site**.
-2. Open Developer Tools: `F12` or `Ctrl + Shift + I` (on Kiwi: `⋮` → Developer Tools).
-3. **Token:** In the **Console** tab, paste the code and press `Enter` (it's copied automatically):
-   ```javascript
-   window.webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(const c of Object.values(e.c))if(c?.exports?.default?.getToken!==void 0)copy(c.exports.default.getToken())}]);
-   ```
-4. **Cookies:** Go to **Application → Cookies → discord.com** and copy `__dcfduid` or `__sdcfduid`.
+
+> 🔑 **What is a token?** A long string that works like your account password. Anyone who has it can access your account without your password. **Never send it, post it, or paste it anywhere except the script.**
+
+The code used to grab the token (the same code for every method):
+```javascript
+window.webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(const c of Object.values(e.c))if(c?.exports?.default?.getToken!==void 0)copy(c.exports.default.getToken())}]);
+```
+
+### 💻 Part 1: On PC
+
+**1) Open Discord in the browser**
+- Open **Chrome** or **Brave** and go to [discord.com/app](https://discord.com/app).
+- Log in and wait until your servers and chats have fully loaded (don't continue before that).
+
+**2) Open Developer Tools**
+- Press `F12` (or `Ctrl + Shift + I`). On Mac: `Cmd + Option + I`.
+- A panel opens at the side or bottom of the page, with tabs along the top such as Elements, Console, Network, and Application.
+
+**3) Get the token**
+1. Click the **Console** tab.
+2. If the browser says pasting is blocked, type `allow pasting` and press `Enter`. After that you can paste.
+3. Paste the code above and press `Enter`.
+4. You will usually see `undefined`. **This is normal** and doesn't mean it failed. The token is now copied to your clipboard.
+5. Paste it right away (`Ctrl + V`) into a notes app or wherever the script asks for it.
+6. It looks like a long string in 3 parts separated by two dots, like `xxxx.yyyy.zzzz`.
+
+> ⚠️ Discord shows a red "Stop!" warning in the console about pasting code. It's a general warning. Never paste code into the console that you don't understand or don't trust.
+
+**4) Get the cookies**
+1. In the same Developer Tools panel, click the **Application** tab. If you can't see it, click the `»` arrows to reveal more tabs.
+2. In the left sidebar, expand **Cookies** and click `https://discord.com`.
+3. In the table, look in the **Name** column for `__dcfduid` (if it's missing, look for `__sdcfduid`).
+4. Double-click its cell in the **Value** column to select it, then press `Ctrl + C` to copy.
+
+### 📱 Part 2: On Android (Kiwi Browser)
+
+**1) Install the browser**
+- Download the **Kiwi Browser** APK from [GitHub Releases](https://github.com/kiwibrowser/src.next/releases).
+- When installing, allow "install from unknown sources" for your browser or file manager.
+
+**2) Open Discord**
+- Open Kiwi and go to [discord.com/app](https://discord.com/app).
+- If it offers to open the app, choose **Continue in browser**.
+- Log in and wait for everything to load.
+
+**3) Enable Desktop site**
+- Tap the three dots `⋮` at the top and turn on **Desktop site**. Without it, Discord keeps pushing the app and the tools don't work well.
+
+**4) Open Developer Tools and get the token**
+1. Tap `⋮` then **Developer tools**.
+2. Tap the **Console** tab.
+3. Type `allow pasting` and press Enter if pasting is blocked.
+4. Paste the code above and press Enter. You'll see `undefined`, which is normal. The token is now in your clipboard.
+5. Paste it into a notes app, or directly into Termux (long-press the screen → Paste).
+
+**5) Get the cookies**
+- In Developer Tools, tap **Application** → **Cookies** → `https://discord.com`, and copy the value of `__dcfduid` or `__sdcfduid`, same as the PC steps.
+
+### 🧩 Common problems at this stage
+| Problem | Fix |
+|---|---|
+| Console refuses to paste | Type `allow pasting` then `Enter` |
+| Error like `Cannot read properties` | Reload the page, wait for it to fully load, and try again |
+| Nothing shows or you see `undefined` | That's normal. Try `Ctrl + V` in a notes app to check the token was copied |
+| The token never copies | Discord sometimes updates its site and breaks the code. Use the alternative method in the Euiz video above |
+| Can't find `__dcfduid` | Look for `__sdcfduid`, or reload the page and reopen the Application tab |
+
+> 🔒 **Reminder:** When you're done with the script, change your Discord password. That invalidates the old token.
 
 ---
 
