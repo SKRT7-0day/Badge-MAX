@@ -1,4 +1,3 @@
-# Badge-MAX
 # 🚀 Discord Badge & Playtime Auto-Farm
 
 سكربت تلقائي لأتمتة الساعات والمطالبة بشارات ديسكورد (Discord Badges).
