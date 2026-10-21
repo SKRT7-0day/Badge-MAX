@@ -86,7 +86,11 @@ window.webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(const c of Objec
 5. Paste it into a notes app, or directly into Termux (long-press the screen → Paste).
 
 **5) Get the cookies**
-- In Developer Tools, tap **Application** → **Cookies** → `https://discord.com`, and copy the value of `__dcfduid` or `__sdcfduid`, same as the PC steps.
+1. In the tab bar at the top of Developer Tools, tap the **double-arrow `>>`** icon at the far right (next to the **Performance** tab) to reveal the hidden tabs.
+2. Choose **Application** from the dropdown menu.
+3. In the left sidebar, expand the **Storage** section, then tap **Cookies**.
+4. Tap `https://discord.com` to show the cookies for Discord.
+5. In the **Name** column, find `__dcfduid` (or `__sdcfduid`), tap its value in the **Value** column to select it, then copy it.
 
 ### 🧩 Common problems at this stage
 | Problem | Fix |
