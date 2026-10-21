@@ -66,7 +66,6 @@ USER_AGENT = (
 
 
 def _user_id_from_token(token: str) -> str:
-    # discord tokens start with base64(user_id) before the first dot
     try:
         first = token.split(".", 1)[0]
         pad = "=" * (-len(first) % 4)
@@ -75,11 +74,6 @@ def _user_id_from_token(token: str) -> str:
         return ""
 
 
-# powershell that reproduces discord's executable_fingerprint. it collects pe metadata
-# (file size, TimeDateStamp, SizeOfImage, header/section-table hashes, signing cert),
-# binds it to your machine guid + user id, and xor-obfuscates the result.
-# reverse-engineered by dolfies:
-# https://gist.github.com/dolfies/d442777ab8354e18c1a3827e27f85c3a
 _FINGERPRINT_PS1 = r'''
 param(
   [int]$ProcessId = 0, [string]$Path,
@@ -131,7 +125,7 @@ public static class CertPubKeyHash {
 
 if (!$Path) {
   if (!$ProcessId) { throw "Pass -Path <exe> or -ProcessId <pid>." }
-  $Path = (Get-Process -Id$ProcessId).Path
+  $Path = (Get-Process -Id $ProcessId).Path
 }
 if (!$Path) { throw "Could not resolve executable path." }
 
@@ -140,46 +134,52 @@ try {
   $fileSize = [UInt64]$fs.Length
   $readSize = [int][Math]::Min($fs.Length, 0x10000)
   $buf = [byte[]]::new($readSize)
-  $read =$fs.Read($buf, 0,$readSize)
+  $read = $fs.Read($buf, 0, $readSize)
   if ($read -lt 0x40) { throw "File prefix is too small." }
-  if ($read -ne$readSize) { [Array]::Resize([ref]$buf,$read) }
+  if ($read -ne $readSize) { [Array]::Resize([ref]$buf, $read) }
 } finally {
   $fs.Dispose()
 }
 
 if ([BitConverter]::ToUInt16($buf, 0) -ne 0x5A4D) { throw "Not an MZ executable." }
 $pe = [BitConverter]::ToInt32($buf, 0x3C)
-if ($pe -lt 0 -or [BitConverter]::ToUInt32($buf,$pe) -ne 0x4550) { throw "Not a PE executable." }
+if ($pe -lt 0 -or [BitConverter]::ToUInt32($buf, $pe) -ne 0x4550) { throw "Not a PE executable." }
 
-$fh =$pe + 4
-$sections = [BitConverter]::ToUInt16($buf, $fh + 2)$timestamp = [BitConverter]::ToUInt32($buf,$fh + 4)
-$optSize = [BitConverter]::ToUInt16($buf, $fh + 16)$opt = $fh + 20$isPe32Plus = [BitConverter]::ToUInt16($buf,$opt) -eq 0x20B
+$fh = $pe + 4
+$sections = [BitConverter]::ToUInt16($buf, $fh + 2)
+$timestamp = [BitConverter]::ToUInt32($buf, $fh + 4)
+$optSize = [BitConverter]::ToUInt16($buf, $fh + 16)
+$opt = $fh + 20
+$isPe32Plus = [BitConverter]::ToUInt16($buf, $opt) -eq 0x20B
 if (!$isPe32Plus) { throw "Discord only fingerprints PE32+." }
-$sizeOfImage = [BitConverter]::ToUInt32($buf,$opt + 56)
+$sizeOfImage = [BitConverter]::ToUInt32($buf, $opt + 56)
 
-$sectionTable =$opt + $optSize$sha256 = [Security.Cryptography.SHA256]::Create()
-$headerHash =$sha256.ComputeHash([byte[]]$buf[0..($sectionTable - 1)])
-$sectionHash =$sha256.ComputeHash([byte[]]$buf[$sectionTable..($sectionTable +$sections * 40 - 1)])
+$sectionTable = $opt + $optSize
+$sha256 = [Security.Cryptography.SHA256]::Create()
+$headerHash = $sha256.ComputeHash([byte[]]$buf[0..($sectionTable - 1)])
+$sectionHash = $sha256.ComputeHash([byte[]]$buf[$sectionTable..($sectionTable + $sections * 40 - 1)])
 
 $machineGuid = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Cryptography" -Name MachineGuid).MachineGuid
-$machineUserHash =$sha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($machineGuid +$UserId))
+$machineUserHash = $sha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($machineGuid + $UserId))
 
-$sig = Get-AuthenticodeSignature -LiteralPath $Path$signed = $sig.Status -eq "Valid" -and $sig.SignerCertificate
-if ($signed) {$name = $sig.SignerCertificate.GetNameInfo([Security.Cryptography.X509Certificates.X509NameType]::SimpleName,$false)
-  $certHash =$sha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($name) + [CertPubKeyHash]::Hash($sig.SignerCertificate.Handle))
+$sig = Get-AuthenticodeSignature -LiteralPath $Path
+$signed = $sig.Status -eq "Valid" -and $sig.SignerCertificate
+if ($signed) {
+  $name = $sig.SignerCertificate.GetNameInfo([Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+  $certHash = $sha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($name) + [CertPubKeyHash]::Hash($sig.SignerCertificate.Handle))
 } else {
   $certHash = [byte[]]::new(32)
 }
 
 $flags = 0
-if ($signed) {$flags += 1 }
-if ($isPe32Plus) {$flags += 2 }
+if ($signed) { $flags += 1 }
+if ($isPe32Plus) { $flags += 2 }
 
 $out = [byte[]](@(1, [byte]$flags) +
   [BitConverter]::GetBytes($fileSize) +
   [BitConverter]::GetBytes($timestamp) +
   [BitConverter]::GetBytes($sizeOfImage) +
-  $headerHash +$machineUserHash + $sectionHash +$certHash)
+  $headerHash + $machineUserHash + $sectionHash + $certHash)
 
 $key = $sha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($UserId + "https://discord.com/careers"))
 for ($i = 1; $i -lt $out.Length; $i++) {
@@ -191,7 +191,6 @@ for ($i = 1; $i -lt $out.Length; $i++) {
 
 
 def generate_fingerprint(user_id: str, path: str = "", pid: int = 0) -> str:
-    """run the powershell generator and return the base64 executable_fingerprint."""
     if os.name != "nt":
         raise RuntimeError("fingerprint generation is windows-only")
     script = Path(tempfile.gettempdir()) / f"disc_fp_{uuid.uuid4().hex}.ps1"
@@ -216,8 +215,6 @@ def generate_fingerprint(user_id: str, path: str = "", pid: int = 0) -> str:
 
 
 class Console:
-    """colored console output."""
-
     RED = "\x1b[91m"
     ORANGE = "\x1b[38;5;208m"
     GREEN = "\x1b[92m"
@@ -229,7 +226,7 @@ class Console:
 
     def __init__(self) -> None:
         try:
-            sys.stdout.reconfigure(encoding="utf-8")  # glyphs must encode even when stdout is piped
+            sys.stdout.reconfigure(encoding="utf-8")
         except Exception:
             pass
         if sys.platform == "win32":
@@ -238,9 +235,8 @@ class Console:
     @staticmethod
     def _enable_ansi() -> None:
         import ctypes
-
         kernel32 = ctypes.windll.kernel32
-        handle = kernel32.GetStdHandle(-11)  # std_output_handle
+        handle = kernel32.GetStdHandle(-11)
         mode = ctypes.c_uint32()
         if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
             kernel32.SetConsoleMode(handle, mode.value | 0x0004)
@@ -283,16 +279,14 @@ class Console:
 
 @dataclass
 class State:
-    """persisted auth: token, cookie, fingerprint, and the cached analytics token."""
-
     token: str = ""
     cookie: str = ""
     fingerprint: str = ""
     analytics_token: str = ""
     fetched_at: int = 0
-    used_games: list[str] = None  # game ids already claimed, rotate to avoid repeats
-    total_games_claimed: int = 0  # cumulative games claimed in this session
-    total_hours_claimed: float = 0.0  # cumulative hours claimed in this session
+    used_games: list[str] = None
+    total_games_claimed: int = 0
+    total_hours_claimed: float = 0.0
 
     def __post_init__(self) -> None:
         if self.used_games is None:
@@ -361,4 +355,527 @@ def build_super_props(launch_signature: str, heartbeat_session: str) -> str:
 
 def _read_analytics_token(auth_token: str, super_props: str) -> str:
     req = urllib.request.Request(ME_URL, headers={
-        "authorization
+        "authorization": auth_token,
+        "user-agent": USER_AGENT,
+        "x-super-properties": super_props,
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"token rejected ({exc.code})") from exc
+    token = data.get("analytics_token")
+    if not token:
+        raise RuntimeError("no analytics_token in response")
+    return token
+
+
+def ensure_token(state: State, super_props: str) -> None:
+    if not state.is_stale:
+        return
+    state.analytics_token = _read_analytics_token(state.token, super_props)
+    state.fetched_at = int(time.time())
+    state.save()
+
+
+@dataclass(frozen=True)
+class Session:
+    heartbeat_session: str
+    launch_signature: str
+    super_props: str
+
+    @classmethod
+    def new(cls) -> "Session":
+        hb = str(uuid.uuid4())
+        sig = str(uuid.uuid4())
+        return cls(hb, sig, build_super_props(sig, hb))
+
+
+@dataclass(frozen=True)
+class Game:
+    id: str
+    name: str
+    exe: str
+
+
+def _win_exe(game: dict) -> str:
+    for entry in game.get("executables", []):
+        if entry.get("os") == "win32" and entry.get("name"):
+            return entry["name"]
+    return "game.exe"
+
+
+def _download_games() -> str:
+    request = urllib.request.Request(GAMES_CDN_URL, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        raw = response.read().decode("utf-8")
+    try:
+        GAMES_FILE.parent.mkdir(parents=True, exist_ok=True)
+        GAMES_FILE.write_text(raw, encoding="utf-8")
+    except OSError:
+        pass
+    return raw
+
+
+def _parse_games(raw: str) -> list[Game]:
+    data = json.loads(raw)
+    games: list[Game] = []
+    seen: set[str] = set()
+    for entry in data:
+        gid = str(entry.get("id", ""))
+        if not gid.isdigit() or gid in seen:
+            continue
+        if not any(e.get("os") == "win32" and e.get("name") for e in entry.get("executables", [])):
+            continue
+        seen.add(gid)
+        games.append(Game(gid, entry.get("name", "Unknown"), _win_exe(entry)))
+    return games
+
+
+def load_games() -> list[Game]:
+    raw = ""
+    if GAMES_FILE.exists():
+        raw = GAMES_FILE.read_text(encoding="utf-8").strip()
+    if raw:
+        try:
+            games = _parse_games(raw)
+            if games:
+                return games
+        except (json.JSONDecodeError, ValueError):
+            pass
+    try:
+        return _parse_games(_download_games())
+    except Exception:
+        return []
+
+
+class ScienceClient:
+    def __init__(self, state: State, session: Session) -> None:
+        self.state = state
+        self.session = session
+        self._seq = 0
+
+    def _next_seq(self) -> int:
+        self._seq += 1
+        return self._seq
+
+    def build_launch(self, game: Game) -> dict:
+        now = int(time.time() * 1000)
+        props = {
+            "client_track_timestamp": now,
+            "client_heartbeat_session_id": self.session.heartbeat_session,
+            "event_sequence_number": self._next_seq(),
+            "game": game.name,
+            "game_id": game.id,
+            "verified": True,
+            "elevated": False,
+            "is_launcher": False,
+            "game_platform": "desktop",
+            "detection_method": "verified_game",
+            "is_overlay_enabled": False,
+            "is_overlay_game_enabled": True,
+            "is_overlay_game_source": "OOP_DEFAULT_DATABASE",
+            "fullscreen_type": "UNKNOWN",
+            "hardware_display_count": 1,
+            "overlay_method": "Disabled",
+            "activity_status_enabled": True,
+            "activity_status_shared_guilds": [],
+            "current_user_status": "online",
+            "game_detection_enabled": True,
+            "executable_path": game.exe,
+            "voice_channel_id": None,
+            "voice_channel_type": None,
+            "voice_channel_bitrate": None,
+            "voice_channel_guild_id": None,
+            "hidden_by_distributor": False,
+            "game_metadata": None,
+            "executable_fingerprint": self.state.fingerprint,
+            "client_performance_cpu": None,
+            "client_performance_memory": None,
+            "cpu_core_count": None,
+            "accessibility_features": 0,
+            "rendered_locale": "en-GB",
+            "launch_signature": self.session.launch_signature,
+            "client_rtc_state": None,
+            "client_app_state": "focused",
+            "client_send_timestamp": now,
+        }
+        if not self.state.fingerprint:
+            del props["executable_fingerprint"]
+        return {"type": "launch_game", "properties": props}
+
+    def build_heartbeat(self, game: Game, duration_ms: int, session_id: str,
+                        initial: bool, final: bool, ts: int | None = None) -> dict:
+        ts = int(time.time() * 1000) if ts is None else ts
+        return {
+            "type": "running_game_heartbeat",
+            "properties": {
+                "client_track_timestamp": ts,
+                "client_heartbeat_session_id": self.session.heartbeat_session,
+                "event_sequence_number": self._next_seq(),
+                "game_id": game.id,
+                "game_name": game.name,
+                "game_metadata": None,
+                "game_executable": game.exe,
+                "game_detection_enabled": True,
+                "initial_heartbeat": initial,
+                "final_heartbeat": final,
+                "game_session_id": session_id,
+                "duration_tracked_ms": duration_ms,
+                "rtc_connection_id": None,
+                "media_session_id": None,
+                "launch_signature": self.session.launch_signature,
+                "client_app_state": "focused",
+                "client_send_timestamp": ts,
+            },
+        }
+
+    def build_session(self, game: Game, duration_ms: int) -> list[dict]:
+        sid = str(uuid.uuid4())
+        now = int(time.time() * 1000)
+        start = now - duration_ms
+        if start < 0:
+            start = now
+        return [
+            self.build_heartbeat(game, 0, sid, initial=True, final=False, ts=start),
+            self.build_launch(game),
+            self.build_heartbeat(game, duration_ms, sid, initial=False, final=True, ts=now),
+        ]
+
+    def post(self, events: Sequence[dict]) -> int:
+        payload = {"token": self.state.analytics_token, "events": list(events)}
+        body = json.dumps(payload).encode("utf-8")
+        headers = {
+            "accept": "*/*",
+            "accept-language": "en-GB",
+            "authorization": self.state.token,
+            "content-type": "application/json",
+            "cookie": self.state.cookie,
+            "origin": "https://discord.com",
+            "referer": "https://discord.com/channels/@me",
+            "user-agent": USER_AGENT,
+            "x-debug-options": "bugReporterEnabled",
+            "x-discord-locale": "en-GB",
+            "x-discord-timezone": "Europe/Oslo",
+            "x-super-properties": self.session.super_props,
+        }
+        if DEBUG:
+            print("\n" + "=" * 72)
+            print(f"POST {SCIENCE_URL} ({len(payload['events'])} events)")
+            print("headers:", json.dumps(headers, indent=2))
+            print("body:", json.dumps(payload, indent=2))
+            print("=" * 72)
+        request = urllib.request.Request(SCIENCE_URL, data=body, method="POST", headers=headers)
+        try:
+            with urllib.request.urlopen(request, timeout=15) as response:
+                return response.status
+        except urllib.error.HTTPError as exc:
+            return exc.code
+        except Exception:
+            return 0
+
+
+def _chunked(items: Sequence[Game], size: int) -> Iterator[Sequence[Game]]:
+    for start in range(0, len(items), size):
+        yield items[start:start + size]
+
+
+class Spoofer:
+    def __init__(self, client: ScienceClient, console: Console) -> None:
+        self.client = client
+        self.console = console
+
+    def run(self, games: Sequence[Game], build_events) -> int:
+        total = len(games)
+        sent_ok = 0
+        for request_no, chunk in enumerate(_chunked(games, BATCH_SIZE), start=1):
+            events = []
+            for game in chunk:
+                events.extend(build_events(game))
+            status = self.client.post(events)
+            if status == 204:
+                sent_ok += len(chunk)
+                self.console.sent(f"batch {request_no}", f"{sent_ok}/{total} games")
+            elif status in (401, 403):
+                self.console.err(f"batch {request_no}",
+                                 f"[{status}] auth rejected · refresh with a fresh cookie")
+                return sent_ok
+            else:
+                self.console.warn(f"batch {request_no}", f"[{status}]")
+            time.sleep(BATCH_DELAY)
+        return sent_ok
+
+
+class App:
+    def __init__(self) -> None:
+        self.console = Console()
+        self.state = State.load()
+        self.session: Session | None = None
+        self.client: ScienceClient | None = None
+        self.games: list[Game] = []
+
+    def start(self) -> None:
+        self.console.banner()
+        time.sleep(0.8)
+        print()
+
+        # step 1: token
+        C = self.console
+        if not self.state.has_token:
+            self._prompt_token()
+        else:
+            C.ok("auth", "token loaded")
+            time.sleep(0.5)
+        if not self.state.has_token:
+            C.err("token", "required to run")
+            return
+
+        # step 2: cookie
+        if not self.state.has_cookie:
+            self.console.banner()
+            self._prompt_cookie()
+        else:
+            C.ok("auth", "cookie loaded")
+            time.sleep(0.5)
+        if not self.state.has_cookie:
+            C.err("cookie", "required to run")
+            return
+
+        # step 3: games
+        self.console.banner()
+        print()
+        C.info("loading games...")
+        time.sleep(0.4)
+        self.games = load_games()
+        if not self.games:
+            C.err("games", "couldn't load the game list")
+            C.info(f"tried {GAMES_FILE} and {GAMES_CDN_URL}")
+            C.info("check your connection, or drop a valid games.json at the path above")
+            return
+        C.ok("games", f"{C.ORANGE}{len(self.games)}{C.WHITE} loaded")
+        time.sleep(0.5)
+
+        # step 4: fingerprint warning
+        if not self.state.fingerprint:
+            print()
+            C.warn("fingerprint", "not set · script may not credit the badges")
+            time.sleep(0.5)
+
+        # step 5: auth
+        print()
+        C.info("validating auth...")
+        self._new_session()
+        try:
+            ensure_token(self.state, self.session.super_props)
+        except Exception as exc:
+            C.err("token", str(exc))
+            return
+        C.ok("auth", "ready")
+        time.sleep(0.5)
+
+        print()
+        self.menu()
+
+    def _new_session(self) -> None:
+        self.session = Session.new()
+        self.client = ScienceClient(self.state, self.session)
+
+    def _prompt_token(self) -> None:
+        self.console.info("paste your discord account token")
+        entered = input(f"  {self.console.GREY}token:{self.console.RESET} ").strip()
+        if entered:
+            self.state.token = entered
+            self.state.save()
+            self.console.ok("token", "saved")
+            time.sleep(1.5)
+
+    def _prompt_cookie(self) -> None:
+        self.console.info("paste your cf_clearance cookie header")
+        entered = input(f"  {self.console.GREY}cookie:{self.console.RESET} ").strip()
+        if entered:
+            self.state.cookie = entered
+            self.state.save()
+            self.console.ok("cookie", "saved")
+            time.sleep(1.5)
+
+    def _refresh(self) -> None:
+        self.console.info("update cookie? [y/n]")
+        choice = input(f"  {self.console.GREY}›{self.console.RESET} ").strip().lower()
+        if choice in ("y", "yes"):
+            self.console.info("paste a fresh cookie header")
+            entered = input(f"  {self.console.GREY}cookie:{self.console.RESET} ").strip()
+            if entered:
+                self.state.cookie = entered
+                self.console.ok("cookie", "updated")
+            else:
+                self.console.info("cookie unchanged")
+
+        self.console.info("refreshing analytics token...")
+        try:
+            self.state.fetched_at = 0
+            ensure_token(self.state, self.session.super_props)
+        except Exception as exc:
+            self.console.err("auth", str(exc))
+            return
+        self._new_session()
+        self.state.save()
+        self.console.ok("auth", "refreshed")
+        time.sleep(1.5)
+
+    def _require_ready(self) -> bool:
+        if not self.state.has_cookie:
+            self.console.err("cookie", "not set · use option 2 to refresh")
+            return False
+        if self.state.is_stale:
+            try:
+                ensure_token(self.state, self.session.super_props)
+            except Exception as exc:
+                self.console.err("auth", str(exc))
+                return False
+            self._new_session()
+        return bool(self.state.analytics_token)
+
+    def claim_games(self) -> None:
+        if not self._require_ready():
+            return
+        C = self.console
+        print()
+        C.info(f"loaded {C.GREEN}{len(self.games)}{C.WHITE} games available")
+
+        raw_count = input(f"  {C.GREY}how many games? [all]:{C.RESET} ").strip()
+        try:
+            count = int(raw_count) if raw_count else len(self.games)
+        except ValueError:
+            C.err("input", "invalid count")
+            return
+        count = min(count, len(self.games))
+
+        raw_hours = input(f"  {C.GREY}hours per game? [1]:{C.RESET} ").strip()
+        try:
+            hours = float(raw_hours) if raw_hours else 1.0
+        except ValueError:
+            C.err("input", "invalid hours")
+            return
+
+        selected = self._select_games(count)
+        if not selected:
+            C.err("games", "none selected")
+            return
+
+        duration_ms = int(hours * 3600 * 1000)
+        total_hours = len(selected) * hours
+        print()
+        C.info(
+            f"claiming {C.ORANGE}{hours:g}h{C.WHITE} on "
+            f"{C.ORANGE}{len(selected)}{C.WHITE} games "
+            f"{C.GREY}·{C.WHITE} {total_hours:,.0f}h total"
+        )
+        C.rule()
+        ok = Spoofer(self.client, self.console).run(
+            selected,
+            lambda g: self.client.build_session(g, duration_ms),
+        )
+        print()
+        C.ok("complete", f"{ok}/{len(selected)} games · {ok * hours:,.0f}h claimed")
+        self.state.total_games_claimed += ok
+        self.state.total_hours_claimed += ok * hours
+        self.state.save()
+
+        C.rule()
+        input(f"  {C.ORANGE}›{C.RESET} press enter to continue")
+        C.rule()
+
+    def _select_games(self, count: int) -> list[Game]:
+        available_ids = {g.id for g in self.games}
+        unused_ids = [g.id for g in self.games if g.id not in self.state.used_games]
+        used_ids = [gid for gid in self.state.used_games if gid in available_ids]
+
+        if len(unused_ids) >= count:
+            selected_ids = unused_ids[:count]
+        else:
+            selected_ids = unused_ids
+            if used_ids:
+                remaining = count - len(selected_ids)
+                rotated = used_ids[remaining:] + used_ids[:remaining]
+                selected_ids.extend(rotated[:remaining])
+
+        self.state.used_games = [gid for gid in self.state.used_games if gid not in selected_ids] + selected_ids
+
+        id_map = {g.id: g for g in self.games}
+        return [id_map[gid] for gid in selected_ids if gid in id_map]
+
+    def set_fingerprint(self) -> None:
+        C = self.console
+        uid = _user_id_from_token(self.state.token)
+        if not uid:
+            C.err("fingerprint", "no valid token · set one first")
+            time.sleep(1.5)
+            return
+        if os.name != "nt":
+            C.err("fingerprint", "windows-only feature")
+            time.sleep(1.5)
+            return
+        C.info("generate an executable_fingerprint tied to this account + machine")
+        C.info(f"account: {C.ORANGE}{uid}{C.RESET}")
+        C.info("point it at a game's .exe (or a running game's pid)")
+        entered = input(f"  {C.GREY}exe path or pid:{C.RESET} ").strip().strip('"')
+        if not entered:
+            C.info("cancelled")
+            time.sleep(1)
+            return
+        pid = int(entered) if entered.isdigit() else 0
+        path = "" if pid else entered
+        if path and not Path(path).exists():
+            C.err("fingerprint", f"file not found: {path}")
+            time.sleep(1.5)
+            return
+        C.info("generating...")
+        try:
+            fp = generate_fingerprint(uid, path=path, pid=pid)
+        except Exception as exc:
+            C.err("fingerprint", str(exc))
+            time.sleep(2)
+            return
+        self.state.fingerprint = fp
+        self.state.save()
+        C.ok("fingerprint", f"set ({len(fp)} chars) · saved to {STATE_FILE.name}")
+        time.sleep(1.5)
+
+    def menu(self) -> None:
+        C = self.console
+        while True:
+            C.clear()
+            C.banner()
+            print()
+            C.info(f"loaded {C.ORANGE}{len(self.games)}{C.WHITE} games")
+            C.info(f"claimed {C.ORANGE}{self.state.total_games_claimed}{C.WHITE} games · {C.ORANGE}{self.state.total_hours_claimed:,.0f}h{C.WHITE} total")
+            C.rule()
+            C.info(f"{C.ORANGE}1{C.RESET} · claim games")
+            C.info(f"{C.ORANGE}2{C.RESET} · refresh auth")
+            C.info(f"{C.ORANGE}3{C.RESET} · set fingerprint")
+            C.info(f"{C.ORANGE}4{C.RESET} · exit")
+            C.rule()
+            choice = input(f"  {C.ORANGE}›{C.RESET} ").strip()
+            print()
+            if choice == "1":
+                self.claim_games()
+            elif choice == "2":
+                self._refresh()
+            elif choice == "3":
+                self.set_fingerprint()
+            elif choice in ("4", ""):
+                break
+            else:
+                C.warn("input", "invalid option")
+
+
+def main() -> None:
+    try:
+        App().start()
+    except KeyboardInterrupt:
+        print()
+        Console().warn("exit", "interrupted")
+
+
+if __name__ == "__main__":
+    main()
