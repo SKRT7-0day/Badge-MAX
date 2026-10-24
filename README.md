@@ -42,7 +42,41 @@ window.webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(const c of Objec
 
 # 📱 شرح الهاتف (أندرويد)
 
-## 🛠️ أولاً: استخراج التوكن (Kiwi Browser)
+## 🟢 أولاً: التشغيل على Termux (تحميل المستودع)
+
+حمّل Termux من [F-Droid](https://f-droid.org/packages/com.termux/) (نسخة Play Store قديمة)، ثم حمّل المستودع وشغّل السكربت.
+
+**1) ثبّت المتطلبات (مرة واحدة فقط)**
+```bash
+pkg install python git -y && pip install requests websocket-client
+```
+
+**2) حمّل المستودع**
+```bash
+git clone https://github.com/SKRT7-0day/Badge-MAX.git
+```
+
+**3) شغّل السكربت**
+```bash
+python script.py
+```
+
+**4) أدخل البيانات المطلوبة**
+بعد التشغيل، السكربت يطلب منك:
+- **التوكن** (انظر قسم استخراج التوكن أعلاه)
+- **عدد الساعات** التي تريد تسجيلها
+- **عدد الألعاب** التي تريد تشغيلها
+
+اكتب القيم واضغط `Enter` وسيبدأ السكربت تلقائياً.
+
+| الأمر | ماذا يفعل؟ |
+|---|---|
+| `git clone <الرابط>` | ينزّل المستودع كامل على جهازك |
+| `cd Badge-MAX && python script.py` | يدخل مجلد المشروع ثم يشغّل السكربت |
+
+> 🔒 قبل ما تحط توكنك في أي سكربت، افتح الكود وتأكد أنه ما يرسل التوكن لأي مكان غير ديسكورد.
+
+## 🛠️ ثانياً: استخراج التوكن (Kiwi Browser)
 
 **1) تثبيت المتصفح**
 - حمّل ملف APK لـ **Kiwi Browser** من [GitHub Releases](https://github.com/kiwibrowser/src.next/releases).
@@ -63,59 +97,8 @@ window.webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(const c of Objec
 4. الصق الكود أعلاه واضغط Enter. سيظهر `undefined`، وهذا طبيعي والتوكن صار في الحافظة.
 5. الصقه في ملاحظات أو مباشرة في Termux (اضغط مطولاً على الشاشة ← Paste).
 
-## 📲 ثانياً: التشغيل على Termux
-حمّل Termux من [F-Droid](https://f-droid.org/packages/com.termux/) (نسخة Play Store قديمة).
-
-إن لم تنزّل المشروع بعد:
-```bash
-git clone <رابط-المستودع> && cd <اسم-المجلد>
-```
-
-### 📖 شرح الأوامر
-| الأمر | ماذا يفعل؟ |
-|---|---|
-| `pkg update -y` | يحدّث قائمة الحزم |
-| `pkg upgrade -y` | يرقّي الحزم المثبتة |
-| `pkg install python git -y` | يثبّت Python وGit |
-| `pip install requests websocket-client` | يثبّت مكتبات الاتصال |
-| `python main.py` | يشغّل السكربت |
-
-- `&&` تربط الأوامر: كل أمر ينفّذ فقط إذا نجح السابق.
-- `-y` يوافق تلقائياً على أسئلة التأكيد.
-
-### ✍️ إنشاء ملف السكربت وتشغيله
-
-**1) افتح ملف جديد بمحرر nano**
-```bash
-nano spoofer.py
-```
-
-**2) ضع الكود داخل الملف**
-- انسخ كود السكربت، ثم في Termux اضغط مطولاً على الشاشة ← **Paste**.
-
-**3) احفظ الملف**
-1. اضغط `Ctrl + X`
-2. اضغط `Y` (للموافقة على الحفظ)
-3. اضغط `Enter` (لتأكيد اسم الملف)
-
-> 💡 كيبورد أندرويد ما فيه زر `Ctrl`. استخدم صف الأزرار الإضافية فوق الكيبورد في Termux: اضغط **CTRL** ثم اضغط `x`.
-
-**4) شغّل السكربت**
-```bash
-python spoofer.py
-```
-
-| الأمر / الاختصار | ماذا يفعل؟ |
-|---|---|
-| `nano spoofer.py` | يفتح الملف (وينشئه إن لم يكن موجوداً) |
-| `Ctrl + X` ثم `Y` ثم `Enter` | يحفظ الملف ويخرج من nano |
-| `Ctrl + X` ثم `N` | يخرج بدون حفظ |
-| `python spoofer.py` | يشغّل السكربت |
-| `ls` | يعرض الملفات في المجلد الحالي |
-| `cd <اسم-المجلد>` | يدخل المجلد |
-
 ### 🧩 أخطاء شائعة في Termux
-- `No such file: main.py` ← ادخل مجلد السكربت بـ `cd`.
+- `No such file: script.py` ← ادخل مجلد السكربت بـ `cd Badge-MAX`.
 - فشل `pkg update` ← نفّذ `termux-change-repo`.
 - `pip` غير موجود ← `pkg install python-pip -y`.
 
