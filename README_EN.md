@@ -4,8 +4,8 @@
 
 A script to automate playtime hours and claim Discord badges.
 
-> ⚠️ **Educational use only.** It may violate Discord's Terms of Service and get your account limited. Use at your own risk.
-> 🔒 When you're done, **change your Discord password** to invalidate the old token, and never share your token.
+> ⚠️ **For educational purposes only.** It may violate Discord's Terms of Service (ToS) and put your account at risk of a **ban**. Use it at your own risk.
+> 🔒 When you're done, **change your account password** to invalidate the old token, and never share the token with anyone.
 
 > ✅ **The script only needs the token.** No cookies required.
 
@@ -18,7 +18,7 @@ A script to automate playtime hours and claim Discord badges.
 pkg update -y && pkg upgrade -y && pkg install python git -y && pip install requests websocket-client && python main.py
 ```
 
-**💻 PC**
+**💻 Computer (PC)**
 ```bash
 pip install requests websocket-client && python main.py
 ```
@@ -26,14 +26,14 @@ pip install requests websocket-client && python main.py
 ---
 
 ## 🎥 Videos
-- [Alternative token method (Euiz)](https://youtu.be/8pSysgdXq8E) — use a normal, unencrypted token.
+- [Alternative way to get the token (Euiz)](https://youtu.be/8pSysgdXq8E) — use a regular, unencrypted token.
 
 ---
 
-## 🔑 What is a token?
-A long string that works like your account password. Anyone who has it can access your account without your password. **Never send it, post it, or paste it anywhere except the script.**
+## 🔑 What is the token?
+A long string that works like your account password. Whoever has it can log into your account without a password. **Don't send it, don't publish it, and don't put it anywhere except the script.**
 
-The code used to grab the token (the same code for every method):
+The code used to get the token (the same code in every method):
 ```javascript
 window.webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(const c of Object.values(e.c))if(c?.exports?.default?.getToken!==void 0)copy(c.exports.default.getToken())}]);
 ```
@@ -42,120 +42,103 @@ window.webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(const c of Objec
 
 # 📱 Phone Guide (Android)
 
-## 🛠️ Step 1: Get Your Token (Kiwi Browser)
+## 🟢 First: Running on Termux (download the repository)
+
+Download Termux from [F-Droid](https://f-droid.org/packages/com.termux/) (the Play Store version is outdated), then download the repository and run the script.
+
+**1) Install the requirements (one time only)**
+```bash
+pkg install python git -y && pip install requests websocket-client
+```
+
+**2) Download the repository**
+```bash
+git clone https://github.com/SKRT7-0day/Badge-MAX.git
+```
+
+**3) Run the script**
+```bash
+python script.py
+```
+
+**4) Enter the required data**
+After launching, the script asks you for:
+- **The token** (see the token extraction section above)
+- **Number of hours** you want to log
+- **Number of games** you want to run
+
+Type the values and press `Enter`, and the script will start automatically.
+
+| Command | What does it do? |
+|---|---|
+| `git clone <link>` | Downloads the whole repository to your device |
+| `cd Badge-MAX && python script.py` | Enters the project folder, then runs the script |
+
+> 🔒 Before you put your token into any script, open the code and make sure it doesn't send the token anywhere other than Discord.
+
+## 🛠️ Second: Extracting the token (Kiwi Browser)
 
 **1) Install the browser**
 - Download the **Kiwi Browser** APK from [GitHub Releases](https://github.com/kiwibrowser/src.next/releases).
-- When installing, allow "install from unknown sources" for your browser or file manager.
+- During installation, allow your browser/files app to "install from unknown sources".
 
 **2) Open Discord**
 - Open Kiwi and go to [discord.com/app](https://discord.com/app).
-- If it offers to open the app, choose **Continue in browser**.
-- Log in and wait for everything to load.
+- If an option to open the app appears, choose **Continue in browser**.
+- Log in and wait for it to finish loading.
 
-**3) Enable Desktop site**
-- Tap the three dots `⋮` at the top and turn on **Desktop site**. Without it, Discord keeps pushing the app and the tools don't work well.
+**3) Enable desktop site**
+- Tap the three dots `⋮` at the top of the browser, then enable **Desktop site**. Without it, Discord tries to open the app and the tools don't work well.
 
-**4) Open Developer Tools and get the token**
+**4) Open developer tools and extract the token**
 1. Tap `⋮` then **Developer tools**.
 2. Tap the **Console** tab.
-3. Type `allow pasting` and press Enter if pasting is blocked.
-4. Paste the code above and press Enter. You'll see `undefined`, which is normal. The token is now in your clipboard.
-5. Paste it into a notes app, or directly into Termux (long-press the screen → Paste).
+3. Type `allow pasting` then `Enter` if pasting is blocked.
+4. Paste the code above and press Enter. `undefined` will appear, which is normal, and the token is now in the clipboard.
+5. Paste it into a notes app or directly into Termux (long-press the screen ← Paste).
 
-## 📲 Step 2: Run on Termux
-Get Termux from [F-Droid](https://f-droid.org/packages/com.termux/) (the Play Store version is outdated).
-
-If you haven't downloaded the project yet:
-```bash
-git clone <repo-link> && cd <folder-name>
-```
-
-### 📖 What each command does
-| Command | What it does |
-|---|---|
-| `pkg update -y` | Refreshes the package list |
-| `pkg upgrade -y` | Upgrades installed packages |
-| `pkg install python git -y` | Installs Python and Git |
-| `pip install requests websocket-client` | Installs the networking libraries |
-| `python main.py` | Runs the script |
-
-- `&&` chains commands: each runs only if the previous one succeeded.
-- `-y` auto-confirms prompts.
-
-### ✍️ Create the script file and run it
-
-**1) Open a new file with the nano editor**
-```bash
-nano spoofer.py
-```
-
-**2) Put the code inside the file**
-- Copy the script code, then in Termux long-press the screen → **Paste**.
-
-**3) Save the file**
-1. Press `Ctrl + X`
-2. Press `Y` (to confirm saving)
-3. Press `Enter` (to confirm the file name)
-
-> 💡 The Android keyboard has no `Ctrl` key. Use the extra keys row above the keyboard in Termux: tap **CTRL**, then tap `x`.
-
-**4) Run the script**
-```bash
-python spoofer.py
-```
-
-| Command / Shortcut | What it does |
-|---|---|
-| `nano spoofer.py` | Opens the file (creates it if it doesn't exist) |
-| `Ctrl + X` then `Y` then `Enter` | Saves the file and exits nano |
-| `Ctrl + X` then `N` | Exits without saving |
-| `python spoofer.py` | Runs the script |
-| `ls` | Lists files in the current folder |
-| `cd <folder-name>` | Enters a folder |
-
-### 🧩 Common Termux errors
-- `No such file: main.py` → `cd` into the script's folder.
-- `pkg update` fails → run `termux-change-repo`.
-- `pip` not found → `pkg install python-pip -y`.
+### 🧩 Common errors in Termux
+- `No such file: script.py` ← enter the script folder with `cd Badge-MAX`.
+- `pkg update` fails ← run `termux-change-repo`.
+- `pip` not found ← `pkg install python-pip -y`.
 
 ---
 
 # 💻 PC Guide
 
-## 🛠️ Step 1: Get Your Token
+## 🛠️ First: Extracting the token
 
 **1) Open Discord in the browser**
-- Open **Chrome** or **Brave** and go to [discord.com/app](https://discord.com/app).
-- Log in and wait until your servers and chats have fully loaded (don't continue before that).
+- Open **Chrome** or **Brave**, and go to [discord.com/app](https://discord.com/app).
+- Log in, and wait until the servers and chats fully appear (don't continue before loading completes).
 
-**2) Open Developer Tools**
+**2) Open developer tools**
 - Press `F12` (or `Ctrl + Shift + I`). On Mac: `Cmd + Option + I`.
-- A panel opens at the side or bottom of the page, with tabs along the top such as Elements, Console, and Network.
+- A panel appears on the side or bottom of the page, with tabs at the top such as Elements, Console, and Network.
 
-**3) Get the token**
+**3) Extract the token**
 1. Click the **Console** tab.
-2. If the browser says pasting is blocked, type `allow pasting` and press `Enter`. After that you can paste.
+2. If the browser says pasting is blocked, type `allow pasting` then `Enter`, and then it will let you paste.
 3. Paste the code above and press `Enter`.
-4. You will usually see `undefined`. **This is normal** and doesn't mean it failed. The token is now copied to your clipboard.
-5. Paste it right away (`Ctrl + V`) into a notes app or wherever the script asks for it.
-6. It looks like a long string in 3 parts separated by two dots, like `xxxx.yyyy.zzzz`.
+4. The word `undefined` will usually appear. **This is normal** and doesn't mean the process failed. The token is now copied to the clipboard.
+5. Paste it directly (`Ctrl + V`) into a notes app or wherever the script asks for it.
+6. It looks like a long string of 3 parts separated by dots, like `xxxx.yyyy.zzzz`.
 
-> ⚠️ Discord shows a red "Stop!" warning in the console about pasting code. It's a general warning. Never paste code into the console that you don't understand or don't trust.
+> ⚠️ Discord shows a red "Stop!" message in the console warning against pasting code. This is a general warning, and you should never paste into the console any code you don't understand or whose source you don't trust.
 
-## 🖥️ Step 2: Run on PC
+## 🖥️ Second: Running on the computer
 Requirement: [Python 3.x](https://www.python.org/downloads/)
 
 Open CMD or PowerShell inside the script folder and run the PC command above.
 
 ---
 
-## 🧩 Common token problems (phone and PC)
-| Problem | Fix |
+## 🧩 Common problems when extracting the token (phone and computer)
+| Problem | Solution |
 |---|---|
-| Console refuses to paste | Type `allow pasting` then `Enter` |
-| Error like `Cannot read properties` | Reload the page, wait for it to fully load, and try again |
-| Nothing shows or you see `undefined` | That's normal. Try `Ctrl + V` in a notes app to check the token was copied |
-| The token never copies | Discord sometimes updates its site and breaks the code. Use the alternative method in the Euiz video above |
+| The console refuses pasting | Type `allow pasting` then `Enter` |
+| An error like `Cannot read properties` appears | Reload the page, wait for it to fully load, and try again |
+| Nothing appears after pasting, or `undefined` appears | This is normal. Try `Ctrl + V` in a notes app to see if the token was copied |
+| The token wasn't copied at all | Discord sometimes updates its site and breaks the code. Use the alternative method in the Euiz video above |
 
-> 🔒 **Reminder:** When you're done with the script, change your Discord password. That invalidates the old token.
+> 🔒 **Reminder:** After you finish using the script, change your account password, as this invalidates the old token.
