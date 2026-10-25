@@ -58,7 +58,7 @@ git clone https://github.com/SKRT7-0day/Badge-MAX.git
 
 **3) شغّل السكربت**
 ```bash
-python script.py
+python spoofer.py
 ```
 
 **4) أدخل البيانات المطلوبة**
